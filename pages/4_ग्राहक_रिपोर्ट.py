@@ -14,8 +14,8 @@ def get_customer_data(username, customer_name=""):
     conn = sqlite3.connect('kamal.db')
     c = conn.cursor()
     if customer_name:
-        c.execute('''SELECT invoice, nep_date, time, amount, payment, photo, notes 
-                     FROM sales WHERE username=? AND customer=? ORDER BY eng_date DESC''', (username, customer_name))
+        c.execute('''SELECT invoice, date, time, amount, payment, photo, notes 
+                     FROM sales WHERE username=? AND customer=? ORDER BY date DESC''', (username, customer_name))
         data = c.fetchall()
         c.execute('SELECT SUM(amount), COUNT(*) FROM sales WHERE username=? AND customer=?', (username, customer_name))
         total, count = c.fetchone()
@@ -42,12 +42,12 @@ if selected:
     col1, col2, col3 = st.columns(3)
     col1.metric("💰 कुल बिक्री", f"रू. {total:,.2f}")
     col2.metric("🧾 बिल संख्या", count)
-    col3.metric("📅 पहिलो", data[-1][1] if data else "-")
+    col3.metric("📅 पहिलो बिक्री", data[-1][1] if data else "-")
     
     st.divider()
     for row in data:
-        inv, nep_date, time, amount, payment, photo, notes = row
-        with st.expander(f"🧾 {inv}  |  {nep_date} {time}  |  रू. {amount:,.2f}"):
+        inv, date, time, amount, payment, photo, notes = row
+        with st.expander(f"🧾 {inv}  |  {date} {time}  |  रू. {amount:,.2f}"):
             a,b = st.columns([2,1])
             with a:
                 st.write(f"💳 {payment}")
