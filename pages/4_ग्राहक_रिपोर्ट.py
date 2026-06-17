@@ -27,7 +27,15 @@ def get_customer_data(username, customer_name=""):
         conn.close()
         return customers, 0, 0
 
-st.title("👥 ग्राहक रिपोर्ट")
+st.markdown("""
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <span style="font-size:2rem;">👥</span>
+    <div>
+        <h1 style="margin:0; font-size:1.8rem;">ग्राहक रिपोर्ट</h1>
+        <p style="margin:0; color:#888; font-size:0.9rem;">ग्राहक अनुसार विश्लेषण</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 customers, _, _ = get_customer_data(USER)
 
@@ -39,21 +47,23 @@ selected = st.selectbox("👤 ग्राहक चयन गर्नुहो
 
 if selected:
     data, total, count = get_customer_data(USER, selected)
+    
     col1, col2, col3 = st.columns(3)
     col1.metric("💰 कुल बिक्री", f"रू. {total:,.2f}")
     col2.metric("🧾 बिल संख्या", count)
     col3.metric("📅 पहिलो बिक्री", data[-1][1] if data else "-")
     
     st.divider()
+    
     for row in data:
         inv, date, time, amount, payment, photo, notes = row
-        with st.expander(f"🧾 {inv}  |  {date} {time}  |  रू. {amount:,.2f}"):
-            a,b = st.columns([2,1])
-            with a:
+        with st.expander(f"🧾 {inv}  •  {date} {time}  •  रू. {amount:,.2f}"):
+            col_a, col_b = st.columns([2, 1])
+            with col_a:
                 st.write(f"💳 {payment}")
                 if notes:
                     st.write(f"📝 {notes}")
-            with b:
+            with col_b:
                 if photo and photo.startswith('http'):
                     st.image(photo, width=150)
                 else:
