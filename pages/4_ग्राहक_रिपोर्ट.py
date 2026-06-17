@@ -1,30 +1,60 @@
 import streamlit as st
-import pandas as pd
-import os
-st.set_page_config(page_title="ग्राहक रिपोर्ट", layout="wide")
-if not st.session_state.get("logged_in", False): st.warning("लगइन गर्नुहोस्"); st.stop()
+import sqlite3
+
+st.set_page_config(page_title="ग्राहक रिपोर्ट", page_icon="👥", layout="wide")
+
+if not st.session_state.get("logged_in", False):
+    st.warning("लगइन गर्नुहोस्")
+    st.stop()
+
 USER = st.session_state.current_user
-CSV = f"sales_{USER}.csv"
-def load():
-    if os.path.exists(CSV): return pd.read_csv(CSV)
-    return pd.DataFrame()
-def safe(v): return "" if pd.isna(v) else str(v)
+
+@st.cache_data(ttl=60)
+def get_customer_data(username, customer_name=""):
+    conn = sqlite3.connect('kamal.db')
+    c = conn.cursor()
+    if customer_name:
+        c.execute('''SELECT invoice, nep_date, time, amount, payment, photo, notes 
+                     FROM sales WHERE username=? AND customer=? ORDER BY eng_date DESC''', (username, customer_name))
+        data = c.fetchall()
+        c.execute('SELECT SUM(amount), COUNT(*) FROM sales WHERE username=? AND customer=?', (username, customer_name))
+        total, count = c.fetchone()
+        conn.close()
+        return data, total or 0, count or 0
+    else:
+        c.execute('SELECT DISTINCT customer FROM sales WHERE username=? AND customer!="" ORDER BY customer', (username,))
+        customers = [row[0] for row in c.fetchall()]
+        conn.close()
+        return customers, 0, 0
+
 st.title("👥 ग्राहक रिपोर्ट")
-df = load()
-if not df.empty:
-    customers = [c for c in df["ग्राहक"].unique() if not pd.isna(c) and c]
-    if customers:
-        sel = st.selectbox("ग्राहक चयन", sorted(customers))
-        cdf = df[df["ग्राहक"] == sel]
-        c1,c2,c3 = st.columns(3)
-        c1.metric("💰 कुल बिक्री", f"रू. {cdf['रकम'].sum():,.2f}")
-        c2.metric("🧾 बिल", len(cdf))
-        c3.metric("📅 पहिलो", cdf["मिति"].iloc[-1] if not cdf.empty else "-")
-        for _, row in cdf.iterrows():
-            with st.expander(f"🧾 {safe(row['इनभ्वाइस'])} | {safe(row['मिति'])} | रू. {row['रकम']:,.2f}"):
-                a,b = st.columns([2,1])
-                with a: st.write(f"⏰ {safe(row['समय'])} | 💳 {safe(row['भुक्तानी'])}")
-                with b:
-                    if safe(row['फोटो']): st.image(row['फोटो'], width=150)
-    else: st.info("कुनै ग्राहक छैन।")
-else: st.info("डाटा छैन।")
+
+customers, _, _ = get_customer_data(USER)
+
+if not customers:
+    st.info("हालसम्म कुनै ग्राहक डाटा छैन।")
+    st.stop()
+
+selected = st.selectbox("👤 ग्राहक चयन गर्नुहोस्", customers)
+
+if selected:
+    data, total, count = get_customer_data(USER, selected)
+    col1, col2, col3 = st.columns(3)
+    col1.metric("💰 कुल बिक्री", f"रू. {total:,.2f}")
+    col2.metric("🧾 बिल संख्या", count)
+    col3.metric("📅 पहिलो", data[-1][1] if data else "-")
+    
+    st.divider()
+    for row in data:
+        inv, nep_date, time, amount, payment, photo, notes = row
+        with st.expander(f"🧾 {inv}  |  {nep_date} {time}  |  रू. {amount:,.2f}"):
+            a,b = st.columns([2,1])
+            with a:
+                st.write(f"💳 {payment}")
+                if notes:
+                    st.write(f"📝 {notes}")
+            with b:
+                if photo and photo.startswith('http'):
+                    st.image(photo, width=150)
+                else:
+                    st.caption("📷 फोटो छैन")
