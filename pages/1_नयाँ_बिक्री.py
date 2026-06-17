@@ -6,7 +6,6 @@ import uuid
 import io
 import json
 from PIL import Image
-from nepali_date_library import NepaliDate
 
 st.set_page_config(page_title="नयाँ बिक्री", page_icon="💰", layout="wide")
 
@@ -21,16 +20,13 @@ def get_db():
     return sqlite3.connect('kamal.db', check_same_thread=False)
 
 def generate_invoice():
-    today_eng = str(datetime.now().date())
+    today = str(datetime.now().date())
     conn = get_db()
     c = conn.cursor()
-    c.execute('SELECT COUNT(*) FROM sales WHERE username=? AND eng_date=?', (USER, today_eng))
+    c.execute('SELECT COUNT(*) FROM sales WHERE username=? AND date=?', (USER, today))
     count = c.fetchone()[0] + 1
     conn.close()
     return f"INV-{datetime.now().strftime('%y%m%d')}-{count:03d}"
-
-def get_nepali_date():
-    return NepaliDate.today().format("YYYY-MM-DD")
 
 # ========== Google Drive Upload ==========
 @st.cache_data(ttl=3600)
@@ -74,8 +70,7 @@ def upload_photo(image_file, invoice_no):
         file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
         
         return f"https://drive.google.com/thumbnail?id={file['id']}&sz=w400"
-    except Exception as e:
-        st.warning(f"⚠️ फोटो अपलोड भएन: {str(e)[:80]}")
+    except Exception:
         return None
 
 # ========== Session State ==========
@@ -83,9 +78,7 @@ if "temp_items" not in st.session_state:
     st.session_state.temp_items = []
 
 st.title("💰 नयाँ बिक्री")
-
-# नेपाली मिति देखाउने
-st.caption(f"📅 नेपाली मिति: {get_nepali_date()}")
+st.caption(f"📅 मिति: {datetime.now().strftime('%Y-%m-%d')}")
 
 col1, col2 = st.columns(2)
 
@@ -134,8 +127,7 @@ with col2:
 if st.session_state.temp_items and st.button("✅ बिक्री सेभ गर्नुहोस्", type="primary", use_container_width=True):
     inv = generate_invoice()
     total = sum(i["रकम"] for i in st.session_state.temp_items)
-    nep_date = get_nepali_date()
-    eng_date = str(datetime.now().date())
+    today = str(datetime.now().date())
     
     photo_link = ""
     if photo:
@@ -144,15 +136,15 @@ if st.session_state.temp_items and st.button("✅ बिक्री सेभ �
     
     conn = get_db()
     c = conn.cursor()
-    c.execute('''INSERT INTO sales (username, eng_date, nep_date, time, invoice, customer, amount, payment, photo, notes)
-                 VALUES (?,?,?,?,?,?,?,?,?,?)''',
-              (USER, eng_date, nep_date, datetime.now().strftime("%H:%M:%S"),
+    c.execute('''INSERT INTO sales (username, date, time, invoice, customer, amount, payment, photo, notes)
+                 VALUES (?,?,?,?,?,?,?,?,?)''',
+              (USER, today, datetime.now().strftime("%H:%M:%S"),
                inv, customer, total, payment, photo_link, notes))
     conn.commit()
     conn.close()
     
     st.session_state.temp_items = []
-    st.success(f"✅ बिक्री सेभ भयो! {inv} | रू. {total:,.2f} | {nep_date}")
+    st.success(f"✅ बिक्री सेभ भयो! {inv} | रू. {total:,.2f}")
     if photo_link:
         st.image(photo_link, width=150)
     st.balloons()
