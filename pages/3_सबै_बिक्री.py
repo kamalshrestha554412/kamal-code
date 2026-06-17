@@ -1,7 +1,6 @@
 import streamlit as st
 import sqlite3
 from datetime import datetime
-from nepali_date_library import NepaliDate
 
 st.set_page_config(page_title="सबै बिक्री", page_icon="📜", layout="wide")
 
@@ -15,15 +14,15 @@ USER = st.session_state.current_user
 def get_all_sales(username, search="", date_filter=""):
     conn = sqlite3.connect('kamal.db')
     c = conn.cursor()
-    query = 'SELECT invoice, eng_date, nep_date, time, customer, amount, payment, photo, notes, id FROM sales WHERE username=?'
+    query = 'SELECT invoice, date, time, customer, amount, payment, photo, notes, id FROM sales WHERE username=?'
     params = [username]
     if search:
         query += ' AND invoice LIKE ?'
         params.append(f'%{search}%')
     if date_filter:
-        query += ' AND eng_date=?'
+        query += ' AND date=?'
         params.append(date_filter)
-    query += ' ORDER BY eng_date DESC, time DESC'
+    query += ' ORDER BY date DESC, time DESC'
     c.execute(query, params)
     data = c.fetchall()
     conn.close()
@@ -43,18 +42,17 @@ col1, col2 = st.columns(2)
 with col1:
     search = st.text_input("🔍 इनभ्वाइस खोज्नुहोस्", placeholder="INV-")
 with col2:
-    date_obj = st.date_input("📅 मिति (अंग्रेजी)", value=None)
+    date_obj = st.date_input("📅 मिति", value=None)
     date_filter = str(date_obj) if date_obj else ""
 
 data = get_all_sales(USER, search, date_filter)
 st.caption(f"📊 जम्मा {len(data)} वटा बिक्री")
 
 for row in data:
-    inv, eng_date, nep_date, time, customer, amount, payment, photo, notes, sale_id = row
-    with st.expander(f"🧾 {inv}  |  {nep_date}  |  रू. {amount:,.2f}"):
+    inv, date, time, customer, amount, payment, photo, notes, sale_id = row
+    with st.expander(f"🧾 {inv}  |  {date} {time}  |  रू. {amount:,.2f}"):
         a,b = st.columns([2,1])
         with a:
-            st.write(f"📅 {nep_date} ({eng_date}) | ⏰ {time}")
             st.write(f"👤 {customer if customer else '-'}")
             st.write(f"💳 {payment}")
             if notes:
