@@ -1,6 +1,5 @@
 import streamlit as st
 import sqlite3
-import os
 
 st.set_page_config(page_title="व्यवस्थापन", page_icon="⚙️", layout="wide")
 
