@@ -6,8 +6,60 @@ import uuid
 import io
 import json
 from PIL import Image
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="नयाँ बिक्री", page_icon="💰", layout="wide")
+st.set_page_config(
+    page_title="नयाँ बिक्री",
+    page_icon="💰",
+    layout="wide"
+)
+
+# CSS
+st.markdown("""
+<style>
+    .form-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        border: 1px solid #f0f0f0;
+        margin-bottom: 1.5rem;
+    }
+    .form-card h3 {
+        margin-top: 0;
+        color: #333;
+        font-weight: 600;
+    }
+    .total-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        margin: 1rem 0;
+    }
+    .total-box h2 {
+        margin: 0;
+        font-size: 2rem;
+    }
+    .total-box p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 0.9rem;
+    }
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        align-items: center;
+    }
+    .item-row:hover {
+        background: #f9f9f9;
+        border-radius: 8px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 if not st.session_state.get("logged_in", False):
     st.warning("कृपया पहिले लगइन गर्नुहोस्")
@@ -28,7 +80,7 @@ def generate_invoice():
     conn.close()
     return f"INV-{datetime.now().strftime('%y%m%d')}-{count:03d}"
 
-# ========== Google Drive Upload ==========
+# ========== Google Drive ==========
 @st.cache_data(ttl=3600)
 def get_drive_creds():
     try:
@@ -73,17 +125,25 @@ def upload_photo(image_file, invoice_no):
     except Exception:
         return None
 
-# ========== Session State ==========
+# ========== Session ==========
 if "temp_items" not in st.session_state:
     st.session_state.temp_items = []
 
-st.title("💰 नयाँ बिक्री")
-st.caption(f"📅 मिति: {datetime.now().strftime('%Y-%m-%d')}")
+st.markdown("""
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <span style="font-size:2rem;">💰</span>
+    <div>
+        <h1 style="margin:0; font-size:1.8rem;">नयाँ बिक्री</h1>
+        <p style="margin:0; color:#888; font-size:0.9rem;">📅 {}</p>
+    </div>
+</div>
+""".format(datetime.now().strftime('%Y-%m-%d')), unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader("📊 रकम थप्नुहोस्")
+    st.markdown('<div class="form-card">', unsafe_allow_html=True)
+    st.markdown("### 💰 रकम थप्नुहोस्")
     st.caption("Enter थिच्नुहोस् वा ➕ बटन थिच्नुहोस्")
     
     def add_callback():
@@ -102,52 +162,80 @@ with col1:
             st.session_state.quick_amt = 0.0
             st.rerun()
     
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Items List
     if st.session_state.temp_items:
-        with st.expander(f"📋 थपिएका रकमहरू ({len(st.session_state.temp_items)})", expanded=True):
-            total = 0
-            for idx, item in enumerate(st.session_state.temp_items):
-                total += item['रकम']
-                a,b,c = st.columns([3,2,1])
-                a.write(f"💰 रू. {item['रकम']:,.2f}")
-                b.caption(f"⏰ {item['समय']}")
-                c.button("❌", key=f"del_{idx}", on_click=lambda i=idx: st.session_state.temp_items.pop(i))
-            st.success(f"### 💰 जम्मा: रू. {total:,.2f}")
+        st.markdown("### 📋 थपिएका रकमहरू")
+        total = 0
+        for idx, item in enumerate(st.session_state.temp_items):
+            total += item['रकम']
+            col_a, col_b, col_c = st.columns([3, 2, 1])
+            with col_a:
+                st.write(f"💰 रू. {item['रकम']:,.2f}")
+            with col_b:
+                st.caption(f"⏰ {item['समय']}")
+            with col_c:
+                st.button("✕", key=f"del_{idx}", on_click=lambda i=idx: st.session_state.temp_items.pop(i))
+        
+        st.markdown(f"""
+        <div class="total-box">
+            <p>📊 जम्मा</p>
+            <h2>रू. {total:,.2f}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("📭 अहिलेसम्म कुनै रकम थपिएको छैन")
 
 with col2:
-    st.subheader("📝 बिक्री विवरण")
+    st.markdown('<div class="form-card">', unsafe_allow_html=True)
+    st.markdown("### 📝 बिक्री विवरण")
+    
     customer = st.text_input("👤 ग्राहक (ऐच्छिक)", placeholder="खाली छोड्नुहोस्")
     payment = st.selectbox("💳 भुक्तानी", ["नगद", "QR", "बैंक", "चेक"])
-    notes = st.text_area("📝 नोट्स", placeholder="थप जानकारी")
+    notes = st.text_area("📝 नोट्स", placeholder="थप जानकारी", height=80)
     
     st.markdown("### 📸 फोटो")
-    photo = st.camera_input("क्यामेराबाट", key="cam")
-    if photo is None:
-        photo = st.file_uploader("वा ग्यालरीबाट", type=["jpg","jpeg","png"])
+    st.caption("मोबाइलको पछाडिको क्यामेरा खुल्छ")
+    
+    components.html("""
+        <input type="file" accept="image/*" capture="environment" id="camInput" 
+               style="width:100%; padding:12px; border:2px solid #4CAF50; border-radius:10px; cursor:pointer; font-size:16px;">
+        <p style="font-size:12px; color:#888; text-align:center; margin-top:5px;">
+            📸 पछाडिको क्यामेरा • फोटो छान्नुहोस्
+        </p>
+    """, height=100)
+    
+    photo = st.file_uploader("वा ग्यालरीबाट", type=["jpg","jpeg","png"], key="photo_upload")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-if st.session_state.temp_items and st.button("✅ बिक्री सेभ गर्नुहोस्", type="primary", use_container_width=True):
-    inv = generate_invoice()
-    total = sum(i["रकम"] for i in st.session_state.temp_items)
-    today = str(datetime.now().date())
-    
-    photo_link = ""
-    if photo:
-        with st.spinner("📸 फोटो अपलोड..."):
-            photo_link = upload_photo(photo, inv) or ""
-    
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''INSERT INTO sales (username, date, time, invoice, customer, amount, payment, photo, notes)
-                 VALUES (?,?,?,?,?,?,?,?,?)''',
-              (USER, today, datetime.now().strftime("%H:%M:%S"),
-               inv, customer, total, payment, photo_link, notes))
-    conn.commit()
-    conn.close()
-    
-    st.session_state.temp_items = []
-    st.success(f"✅ बिक्री सेभ भयो! {inv} | रू. {total:,.2f}")
-    if photo_link:
-        st.image(photo_link, width=150)
-    st.balloons()
-    st.rerun()
+# Save Button
+if st.session_state.temp_items:
+    if st.button("✅ बिक्री सेभ गर्नुहोस्", type="primary", use_container_width=True):
+        inv = generate_invoice()
+        total = sum(i["रकम"] for i in st.session_state.temp_items)
+        today = str(datetime.now().date())
+        
+        photo_link = ""
+        if photo:
+            with st.spinner("📸 फोटो अपलोड..."):
+                photo_link = upload_photo(photo, inv) or ""
+        
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''INSERT INTO sales (username, date, time, invoice, customer, amount, payment, photo, notes)
+                     VALUES (?,?,?,?,?,?,?,?,?)''',
+                  (USER, today, datetime.now().strftime("%H:%M:%S"),
+                   inv, customer, total, payment, photo_link, notes))
+        conn.commit()
+        conn.close()
+        
+        st.session_state.temp_items = []
+        
+        st.balloons()
+        st.success(f"✅ बिक्री सेभ भयो!\n\n🧾 {inv}\n💰 रू. {total:,.2f}")
+        if photo_link:
+            st.image(photo_link, width=150)
+        st.rerun()
 else:
     st.info("👈 पहिले रकम थप्नुहोस्")
