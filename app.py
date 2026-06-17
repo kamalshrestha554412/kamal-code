@@ -3,9 +3,97 @@ import sqlite3
 import hashlib
 from datetime import datetime
 
-st.set_page_config(page_title="कमल कोड", page_icon="🚀", layout="wide")
+st.set_page_config(
+    page_title="कमल कोड",
+    page_icon="📸",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# ========== Database Setup ==========
+# ========== Custom CSS ==========
+st.markdown("""
+<style>
+    /* Main container */
+    .main-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .main-header h1 {
+        font-size: 2.2rem;
+        margin: 0;
+        font-weight: 700;
+    }
+    .main-header p {
+        margin: 5px 0 0 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+    /* Cards */
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        margin-bottom: 1rem;
+        border: 1px solid #f0f0f0;
+        transition: all 0.2s;
+    }
+    .card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+    }
+    .card-icon {
+        font-size: 2.5rem;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+    .card-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        text-align: center;
+        margin-bottom: 0.3rem;
+    }
+    .card-desc {
+        color: #666;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+    /* Buttons */
+    .stButton > button {
+        border-radius: 10px !important;
+        font-weight: 500 !important;
+        padding: 0.6rem 1.2rem !important;
+        transition: all 0.2s !important;
+    }
+    .stButton > button:hover {
+        transform: scale(1.02);
+    }
+    /* Login */
+    .login-container {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 2.5rem;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    .login-container h2 {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    /* Mobile */
+    @media (max-width: 640px) {
+        .main-header h1 { font-size: 1.6rem; }
+        .card { padding: 1rem; }
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ========== Database ==========
 def init_db():
     conn = sqlite3.connect('kamal.db')
     c = conn.cursor()
@@ -41,7 +129,7 @@ def init_db():
 
 init_db()
 
-# ========== Session State ==========
+# ========== Session ==========
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "current_user" not in st.session_state:
@@ -60,14 +148,22 @@ def verify_user(username, password):
     return result[0] if result else None
 
 if not st.session_state.logged_in:
-    st.title("🚀 कमल कोड - बिक्री रेकर्ड")
+    st.markdown("""
+    <div style="text-align: center; padding: 2rem 1rem;">
+        <span style="font-size: 4rem;">📸</span>
+        <h1 style="font-size: 2.5rem; margin: 0.5rem 0; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">कमल कोड</h1>
+        <p style="color: #666; font-size: 1.1rem;">बिक्री रेकर्ड व्यवस्थापन</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        with st.container(border=True):
-            st.markdown("### 🔐 लगइन गर्नुहोस्")
-            username = st.text_input("प्रयोगकर्ता नाम")
-            password = st.text_input("पासवर्ड", type="password")
-            if st.button("लगइन", use_container_width=True, type="primary"):
+        with st.container():
+            st.markdown('<div class="login-container">', unsafe_allow_html=True)
+            st.markdown("### 🔐 लगइन")
+            username = st.text_input("प्रयोगकर्ता नाम", placeholder="admin / ram / sita / hari")
+            password = st.text_input("पासवर्ड", type="password", placeholder="••••••••")
+            if st.button("🚀 लगइन गर्नुहोस्", use_container_width=True, type="primary"):
                 fullname = verify_user(username, password)
                 if fullname:
                     st.session_state.logged_in = True
@@ -76,34 +172,67 @@ if not st.session_state.logged_in:
                     st.rerun()
                 else:
                     st.error("❌ गलत प्रयोगकर्ता वा पासवर्ड!")
+            st.caption("🔑 admin / admin123  |  ram / ram123")
+            st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
-# ========== Main Page ==========
-st.markdown(f"### 🚀 कमल कोड - स्वागत छ, {st.session_state.user_fullname}!")
+# ========== Main ==========
+# Header
+st.markdown(f"""
+<div class="main-header">
+    <h1>📸 कमल कोड</h1>
+    <p>👤 {st.session_state.user_fullname}  •  @{st.session_state.current_user}</p>
+</div>
+""", unsafe_allow_html=True)
 
-with st.sidebar:
-    st.markdown(f"## 👤 {st.session_state.user_fullname}")
-    st.markdown(f"*@{st.session_state.current_user}*")
-    st.markdown("---")
-    st.markdown("### 📍 पेजहरू")
-    st.markdown("1️⃣ **नयाँ बिक्री** - बिक्री थप्ने")
-    st.markdown("2️⃣ **आजको बिक्री** - दैनिक रिपोर्ट")
-    st.markdown("3️⃣ **सबै बिक्री** - खोज/फिल्टर")
-    st.markdown("4️⃣ **ग्राहक रिपोर्ट** - ग्राहक अनुसार")
-    st.markdown("5️⃣ **व्यवस्थापन** - डाटा सेटिङ")
-    st.markdown("---")
-    if st.button("🚪 लगआउट", use_container_width=True, type="secondary"):
-        st.session_state.logged_in = False
-        st.session_state.current_user = ""
-        st.session_state.user_fullname = ""
-        st.rerun()
+# Quick Stats
+conn = sqlite3.connect('kamal.db')
+c = conn.cursor()
+c.execute('SELECT COUNT(*), SUM(amount) FROM sales WHERE username=? AND date=?', (st.session_state.current_user, str(datetime.now().date())))
+today_count, today_total = c.fetchone()
+today_count = today_count or 0
+today_total = today_total or 0
+conn.close()
 
-st.info("👈 बायाँपट्टिको साइडबारबाट पेज चयन गर्नुहोस्।")
-st.success("📌 **नयाँ बिक्री** पेजमा गएर रकम थप्नुहोस् र फोटो लिनुहोस्।")
+col1, col2, col3 = st.columns(3)
+col1.metric("💰 आजको बिक्री", f"रू. {today_total:,.2f}")
+col2.metric("🧾 आजको बिल", today_count)
+col3.metric("👤 प्रयोगकर्ता", st.session_state.user_fullname)
 
-# Performance Info
-with st.expander("⚡ एपको जानकारी"):
-    st.caption("✅ SQLite Database (छिटो)")
-    st.caption("✅ Caching Enabled")
-    st.caption("✅ Google Drive Ready (यदि सेट छ भने)")
-    st.caption("✅ UptimeRobot Friendly")
+st.markdown("---")
+
+# ========== Pages as Cards ==========
+st.markdown("### 📍 मुख्य मेनु")
+
+pages = [
+    {"icon": "💰", "title": "नयाँ बिक्री", "desc": "बिक्री थप्नुहोस् र फोटो लिनुहोस्", "page": "1_नयाँ_बिक्री"},
+    {"icon": "📅", "title": "आजको बिक्री", "desc": "आजको दिनको सारांश", "page": "2_आजको_बिक्री"},
+    {"icon": "📜", "title": "सबै बिक्री", "desc": "सबै रेकर्ड हेर्नुहोस् र खोज्नुहोस्", "page": "3_सबै_बिक्री"},
+    {"icon": "👥", "title": "ग्राहक रिपोर्ट", "desc": "ग्राहक अनुसार विश्लेषण", "page": "4_ग्राहक_रिपोर्ट"},
+    {"icon": "⚙️", "title": "व्यवस्थापन", "desc": "डाटा र सेटिङ", "page": "5_व्यवस्थापन"},
+]
+
+# 3 columns layout
+cols = st.columns(3)
+for i, page in enumerate(pages):
+    with cols[i % 3]:
+        st.markdown(f"""
+        <div class="card">
+            <div class="card-icon">{page['icon']}</div>
+            <div class="card-title">{page['title']}</div>
+            <div class="card-desc">{page['desc']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button(f"खोल्नुहोस् →", key=f"page_{i}"):
+            st.switch_page(f"pages/{page['page']}.py")
+
+st.markdown("---")
+
+# Logout
+if st.button("🚪 लगआउट", type="secondary"):
+    st.session_state.logged_in = False
+    st.session_state.current_user = ""
+    st.session_state.user_fullname = ""
+    st.rerun()
+
+st.caption(f"📱 कमल कोड v3.0  •  {datetime.now().strftime('%Y-%m-%d %H:%M')}")
