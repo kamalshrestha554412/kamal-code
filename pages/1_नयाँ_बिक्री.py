@@ -95,8 +95,6 @@ def upload_photo_to_drive(image_file, invoice_no):
 # ========== Session State ==========
 if "temp_items" not in st.session_state:
     st.session_state.temp_items = []
-if "amount_input" not in st.session_state:
-    st.session_state.amount_input = 0.0
 
 # ========== UI ==========
 st.title("💰 नयाँ बिक्री")
@@ -105,12 +103,13 @@ st.caption(f"📅 {datetime.now().strftime('%Y-%m-%d')}")
 # --- Row 1: Amount Input ---
 col1, col2, col3 = st.columns([2, 1, 2])
 with col1:
+    # ✅ सही तरिका: कुनै key को मान आफैं सेट गर्नु पर्दैन
     amount = st.number_input(
         "रकम (रू.)",
         min_value=0.0,
         step=100.0,
         format="%.2f",
-        key="amount_input"
+        key="amount_input"  # key दिए पनि, हामी यसको मान आफैं सेट गर्दैनौं
     )
 with col2:
     if st.button("➕ थप्नुहोस्", use_container_width=True):
@@ -119,7 +118,9 @@ with col2:
                 "रकम": amount,
                 "समय": datetime.now().strftime("%H:%M:%S")
             })
-            st.session_state.amount_input = 0.0
+            # ✅ अब st.session_state.amount_input = 0.0 गर्नु पर्दैन
+            # किनभने widget को मान आफैं क्लियर हुँदैन, तर हामी नयाँ इनपुटको लागि खाली गर्न सक्दैनौं।
+            # यसको सट्टा, हामी पेज रिफ्रेस गर्छौं।
             st.rerun()
         else:
             st.warning("⚠️ ० भन्दा बढी रकम राख्नुहोस्")
