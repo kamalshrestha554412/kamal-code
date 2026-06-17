@@ -8,7 +8,7 @@ import json
 from PIL import Image
 import logging
 
-# ========== Logging Setup ==========
+# ========== Logging ==========
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -39,36 +39,34 @@ def get_drive_creds():
     try:
         from google.oauth2 import service_account
         creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON", "")
-        logger.info(f"🔍 GOOGLE_CREDENTIALS_JSON length: {len(creds_json)}")
         if not creds_json or len(creds_json) < 50:
             logger.warning("⚠️ GOOGLE_CREDENTIALS_JSON सेट छैन")
             return None
         creds_info = json.loads(creds_json)
-        logger.info("✅ JSON पढियो")
         return service_account.Credentials.from_service_account_info(
             creds_info, scopes=['https://www.googleapis.com/auth/drive.file']
         )
     except Exception as e:
-        logger.error(f"❌ क्रेडेन्सियल त्रुटि: {e}")
+        logger.error(f"❌ JSON त्रुटि: {e}")
         return None
 
-def upload_photo(image_file, invoice_no):
+def upload_photo_to_drive(image_file, invoice_no):
     try:
         from googleapiclient.discovery import build
         from googleapiclient.http import MediaIoBaseUpload
 
         creds = get_drive_creds()
         if not creds:
+            st.warning("⚠️ Google Drive क्रेडेन्सियल सेट छैन। फोटो अपलोड भएन।")
             return None
 
         folder_id = os.environ.get("GOOGLE_DRIVE_FOLDER_ID", "")
         if not folder_id:
-            logger.error("❌ Folder ID छैन")
+            st.warning("⚠️ Google Drive Folder ID सेट छैन।")
             return None
 
         drive_service = build('drive', 'v3', credentials=creds)
-        logger.info("✅ Drive Service बन्यो")
-
+        
         img = Image.open(image_file)
         img = img.resize((400, 400))
         img_bytes = io.BytesIO()
@@ -91,74 +89,97 @@ def upload_photo(image_file, invoice_no):
 
     except Exception as e:
         logger.error(f"❌ अपलोड असफल: {e}")
+        st.warning(f"⚠️ फोटो अपलोड भएन: {str(e)[:80]}")
         return None
 
-# ========== Session ==========
+# ========== Session State ==========
 if "temp_items" not in st.session_state:
     st.session_state.temp_items = []
+if "amount_input" not in st.session_state:
+    st.session_state.amount_input = 0.0
 
+# ========== UI ==========
 st.title("💰 नयाँ बिक्री")
-st.caption(f"📅 मिति: {datetime.now().strftime('%Y-%m-%d')}")
+st.caption(f"📅 {datetime.now().strftime('%Y-%m-%d')}")
 
-col1, col2 = st.columns(2)
-
+# --- Row 1: Amount Input ---
+col1, col2, col3 = st.columns([2, 1, 2])
 with col1:
-    st.subheader("📊 रकम थप्नुहोस्")
-    amount = st.number_input("रकम (रू.)", min_value=0.0, step=100.0, format="%.2f", key="amount_number")
-    
+    amount = st.number_input(
+        "रकम (रू.)",
+        min_value=0.0,
+        step=100.0,
+        format="%.2f",
+        key="amount_input"
+    )
+with col2:
     if st.button("➕ थप्नुहोस्", use_container_width=True):
         if amount > 0:
             st.session_state.temp_items.append({
                 "रकम": amount,
                 "समय": datetime.now().strftime("%H:%M:%S")
             })
+            st.session_state.amount_input = 0.0
             st.rerun()
         else:
             st.warning("⚠️ ० भन्दा बढी रकम राख्नुहोस्")
-    
-    if st.session_state.temp_items:
-        with st.expander(f"📋 थपिएका रकमहरू ({len(st.session_state.temp_items)})", expanded=True):
-            total = 0
-            for idx, item in enumerate(st.session_state.temp_items):
-                total += item['रकम']
-                a, b, c = st.columns([3, 2, 1])
-                a.write(f"💰 रू. {item['रकम']:,.2f}")
-                b.caption(f"⏰ {item['समय']}")
-                c.button("❌", key=f"del_{idx}", on_click=lambda i=idx: st.session_state.temp_items.pop(i))
-            st.success(f"### 💰 जम्मा: रू. {total:,.2f}")
 
-with col2:
-    st.subheader("📝 बिक्री विवरण")
-    customer = st.text_input("👤 ग्राहक (ऐच्छिक)")
-    payment = st.selectbox("💳 भुक्तानी", ["नगद", "QR", "बैंक", "चेक"])
-    notes = st.text_area("📝 नोट्स")
-    
-    st.markdown("### 📸 फोटो")
-    # ✅ सही तरिका: सिधै st.camera_input प्रयोग गर्ने
-    photo = st.camera_input("क्यामेराबाट फोटो लिनुहोस्", key="camera_input")
-    if photo is None:
-        photo = st.file_uploader("वा ग्यालरीबाट", type=["jpg", "jpeg", "png"], key="file_uploader")
-    
-    if photo:
-        st.image(photo, caption="📸 चयन गरिएको फोटो", width=150)
+# --- Added Items ---
+if st.session_state.temp_items:
+    with st.container():
+        st.markdown("### 📋 थपिएका रकमहरू")
+        total = 0
+        for idx, item in enumerate(st.session_state.temp_items):
+            total += item['रकम']
+            col_a, col_b, col_c = st.columns([3, 2, 1])
+            with col_a:
+                st.write(f"💰 रू. {item['रकम']:,.2f}")
+            with col_b:
+                st.caption(f"⏰ {item['समय']}")
+            with col_c:
+                if st.button("❌", key=f"del_{idx}"):
+                    st.session_state.temp_items.pop(idx)
+                    st.rerun()
+        st.success(f"### 💰 कुल जम्मा: रू. {total:,.2f}")
+else:
+    st.info("📭 अहिलेसम्म कुनै रकम थपिएको छैन")
 
 st.markdown("---")
 
+# --- Customer & Photo ---
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("👤 ग्राहक विवरण")
+    customer = st.text_input("ग्राहकको नाम", placeholder="ऐच्छिक")
+    payment = st.selectbox("भुक्तानी विधि", ["नगद", "QR", "बैंक", "चेक"])
+    notes = st.text_area("नोट्स", placeholder="थप जानकारी")
+
+with col2:
+    st.subheader("📸 फोटो")
+    st.caption("बिक्रीको प्रमाणको लागि फोटो लिनुहोस्")
+    photo = st.camera_input("क्यामेराबाट", key="camera_input")
+    if photo is None:
+        photo = st.file_uploader("वा ग्यालरीबाट", type=["jpg", "jpeg", "png"], key="file_uploader")
+    if photo:
+        st.image(photo, caption="चयन गरिएको फोटो", width=200)
+
+st.markdown("---")
+
+# --- Save Button ---
 if st.session_state.temp_items:
     if st.button("✅ बिक्री सेभ गर्नुहोस्", type="primary", use_container_width=True):
         inv = generate_invoice()
         total = sum(i["रकम"] for i in st.session_state.temp_items)
         today = str(datetime.now().date())
         
+        # Upload photo to Google Drive
         photo_link = ""
         if photo:
-            with st.spinner("📸 फोटो अपलोड..."):
-                photo_link = upload_photo(photo, inv) or ""
-                if photo_link:
-                    logger.info(f"✅ फोटो लिङ्क: {photo_link[:50]}...")
-                else:
-                    logger.warning("⚠️ फोटो अपलोड भएन")
+            with st.spinner("📸 फोटो अपलोड गर्दै..."):
+                photo_link = upload_photo_to_drive(photo, inv) or ""
         
+        # Save to database
         conn = get_db()
         c = conn.cursor()
         c.execute('''INSERT INTO sales (username, date, time, invoice, customer, amount, payment, photo, notes)
@@ -172,7 +193,7 @@ if st.session_state.temp_items:
         st.balloons()
         st.success(f"✅ बिक्री सेभ भयो!\n\n🧾 {inv}\n💰 रू. {total:,.2f}")
         if photo_link:
-            st.image(photo_link, caption="📸 अपलोड गरिएको फोटो", width=150)
+            st.image(photo_link, caption="अपलोड गरिएको फोटो", width=150)
         st.rerun()
 else:
     st.info("👈 पहिले रकम थप्नुहोस्")
