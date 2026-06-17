@@ -2,9 +2,8 @@ import streamlit as st
 import sqlite3
 import hashlib
 from datetime import datetime
-from nepali_date_library import NepaliDate
 
-st.set_page_config(page_title="कमल कोड - Final", page_icon="🚀", layout="wide")
+st.set_page_config(page_title="कमल कोड", page_icon="🚀", layout="wide")
 
 # ========== Database Setup ==========
 def init_db():
@@ -19,8 +18,7 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT,
-        eng_date TEXT,
-        nep_date TEXT,
+        date TEXT,
         time TEXT,
         invoice TEXT,
         customer TEXT,
@@ -30,7 +28,6 @@ def init_db():
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
-    # Default users
     default_users = [
         ('admin', hashlib.sha256('admin123'.encode()).hexdigest(), 'Admin', 'admin'),
         ('ram', hashlib.sha256('ram123'.encode()).hexdigest(), 'Ram Sharma', 'staff'),
@@ -104,14 +101,9 @@ with st.sidebar:
 st.info("👈 बायाँपट्टिको साइडबारबाट पेज चयन गर्नुहोस्।")
 st.success("📌 **नयाँ बिक्री** पेजमा गएर रकम थप्नुहोस् र फोटो लिनुहोस्।")
 
-# ========== Nepali Date Display ==========
-today_bs = NepaliDate.today().format("YYYY-MM-DD")
-st.caption(f"📅 आजको नेपाली मिति: {today_bs}")
-
-# ========== Performance Info ==========
-with st.expander("⚡ Performance Info"):
+# Performance Info
+with st.expander("⚡ एपको जानकारी"):
     st.caption("✅ SQLite Database (छिटो)")
     st.caption("✅ Caching Enabled")
-    st.caption("✅ Google Drive Ready")
+    st.caption("✅ Google Drive Ready (यदि सेट छ भने)")
     st.caption("✅ UptimeRobot Friendly")
-    st.caption(f"✅ आजको नेपाली मिति: {today_bs}")
