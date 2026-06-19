@@ -17,7 +17,7 @@ def get_stats():
     conn.close()
     return count or 0, total or 0
 
-def delete_all_data():
+def delete_all():
     conn = sqlite3.connect('kamal.db')
     c = conn.cursor()
     c.execute('DELETE FROM sales WHERE username=?', (USER,))
@@ -25,15 +25,7 @@ def delete_all_data():
     conn.close()
     st.cache_data.clear()
 
-st.markdown("""
-<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
-    <span style="font-size:2rem;">⚙️</span>
-    <div>
-        <h1 style="margin:0; font-size:1.8rem;">व्यवस्थापन</h1>
-        <p style="margin:0; color:#888; font-size:0.9rem;">डाटा जानकारी र सेटिङ</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.title("⚙️ व्यवस्थापन")
 
 count, total = get_stats()
 
@@ -49,11 +41,9 @@ conn.close()
 col3.metric("📸 फोटो सहित", photo_count)
 
 st.divider()
+st.warning("⚠️ यसले तपाईंको सबै डाटा स्थायी रूपमा मेट्नेछ")
 
-st.warning("⚠️ यो कार्यले तपाईंको सबै डाटा स्थायी रूपमा मेट्नेछ।")
 if st.button("🗑️ सबै डाटा मेट्नुहोस्", type="secondary", use_container_width=True):
-    delete_all_data()
+    delete_all()
     st.success("✅ सबै डाटा मेटियो!")
     st.rerun()
-
-st.caption("📌 डाटा मेटेपछि फिर्ता हुँदैन। कृपया पक्का गर्नुहोस्।")
