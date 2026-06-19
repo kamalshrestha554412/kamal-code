@@ -36,15 +36,7 @@ def delete_sale(sale_id):
     conn.close()
     st.cache_data.clear()
 
-st.markdown("""
-<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
-    <span style="font-size:2rem;">📜</span>
-    <div>
-        <h1 style="margin:0; font-size:1.8rem;">सबै बिक्री</h1>
-        <p style="margin:0; color:#888; font-size:0.9rem;">सबै रेकर्ड एकै ठाउँमा</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.title("📜 सबै बिक्री")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -58,13 +50,11 @@ st.caption(f"📊 जम्मा {len(data)} वटा बिक्री")
 
 for row in data:
     inv, date, time, customer, amount, payment, photo, notes, sale_id = row
-    with st.expander(f"🧾 {inv}  •  {date} {time}  •  रू. {amount:,.2f}"):
+    with st.expander(f"🧾 {inv}  |  {date} {time}  |  रू. {amount:,.2f}"):
         col_a, col_b = st.columns([2, 1])
         with col_a:
-            st.write(f"👤 {customer if customer else '-'}")
-            st.write(f"💳 {payment}")
-            if notes:
-                st.write(f"📝 {notes}")
+            st.write(f"👤 {customer if customer else '-'}  •  💳 {payment}")
+            if notes: st.write(f"📝 {notes}")
         with col_b:
             if photo and photo.startswith('http'):
                 st.image(photo, width=150)
